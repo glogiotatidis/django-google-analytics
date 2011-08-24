@@ -18,9 +18,7 @@ def do_get_analytics(parser, token):
         code = contents[1]
     elif len(contents) == 1:
         code = None
-    else:
-        raise template.TemplateSyntaxError, "%r cannot take more than one argument" % tag_name
-   
+
     if not code:
         current_site = Site.objects.get_current()
     else:
@@ -30,13 +28,13 @@ def do_get_analytics(parser, token):
         current_site = None
 
     return AnalyticsNode(current_site, code, template_name)
-    
+
 class AnalyticsNode(template.Node):
     def __init__(self, site=None, code=None, template_name='google_analytics/analytics_template.html'):
         self.site = site
         self.code = code
         self.template_name = template_name
-        
+
     def render(self, context):
         content = ''
         if self.site:
@@ -49,18 +47,29 @@ class AnalyticsNode(template.Node):
             code = self.code
         else:
             return ''
-        
+
         if code.strip() != '':
+
+            d = {'track_page_load_time': getattr(settings,
+                                                 "GOOGLE_ANALYTICS_TRACK_PAGE_LOAD_TIME",
+                                                 False)
+                 }
+
+            code = code.split()
+            for key, value in zip(filter(lambda x: code.index(x) % 2 == 0, code),
+                                  filter(lambda x: code.index(x) % 2 == 1, code)):
+                d['analytics_'+key] = value
+            else:
+                d['analytics_code'] = code[0]
+
+            print d
+
             t = loader.get_template(self.template_name)
-            c = Context({
-                'analytics_code': code,
-                'track_page_load_time': getattr(settings,
-                                                "GOOGLE_ANALYTICS_TRACK_PAGE_LOAD_TIME",
-                                                False),
-            })
+            c = Context(d)
+
             return t.render(c)
         else:
             return ''
-        
+
 register.tag('analytics', do_get_analytics)
 register.tag('analytics_async', do_get_analytics)
