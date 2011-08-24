@@ -62,8 +62,6 @@ class AnalyticsNode(template.Node):
             else:
                 d['analytics_code'] = code[0]
 
-            print d
-
             t = loader.get_template(self.template_name)
             c = Context(d)
 
